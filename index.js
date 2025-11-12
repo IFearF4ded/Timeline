@@ -24,24 +24,18 @@ function sanitizeNumber(n, fallback) {
   return Number.isFinite(val) ? Math.round(val) : fallback;
 }
 
-function isLocalhost(host) {
-  return host === "127.0.0.1" || host === "localhost" || host === "::1";
-}
-
 /* START endpoint */
 app.post("/start", (req, res) => {
   if (child) return res.status(409).json({ ok: false, error: "Process already running" });
 
   const body = req.body || {};
   const host = String(body.host || "127.0.0.1").trim();
-  const port = sanitizeNumber(body.port, 9999);
+  const port = sanitizeNumber(body.port, 80);
   let threads = sanitizeNumber(body.threads, 4);
   let seconds = sanitizeNumber(body.seconds, 10);
   let payload = sanitizeNumber(body.payload, 1024);
   let delay = sanitizeNumber(body.delay, 0);
 
-  // safety checks
-  if (!isLocalhost(host)) return res.status(400).json({ ok: false, error: "Only localhost targets allowed" });
   if (port < 1 || port > 65535) return res.status(400).json({ ok: false, error: "Invalid port" });
   if (threads < 1) threads = 1;
   if (threads > 1024) return res.status(400).json({ ok: false, error: "Threads too large (max 1024)" });
