@@ -1,43 +1,107 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Local UDP Flood Controller</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Local UDP Controller</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<h1>Local UDP Flood</h1>
-<form id="configForm">
-  <label>Threads: <input type="number" name="threads" value="4"></label>
-  <label>Seconds: <input type="number" name="seconds" value="10"></label>
-  <label>Payload (B): <input type="number" name="payload" value="1024"></label>
-  <label>Delay (ms): <input type="number" name="delay" value="0"></label>
-  <button type="submit">Start</button>
-</form>
-<button id="stopBtn">Stop</button>
-<pre id="log"></pre>
+  <div class="container">
+    <div class="header">
+      <div>
+        <h1>Local UDP Controller</h1>
+        <div class="sub">Runs local_flood_fixed.js on this machine — targets must be localhost.</div>
+      </div>
+      <div class="small">Local use only — do not deploy</div>
+    </div>
+
+    <div class="panel">
+      <div class="form-grid">
+        <div class="form-row">
+          <label>Host</label>
+          <input id="host" type="text" value="127.0.0.1" />
+        </div>
+        <div class="form-row">
+          <label>Port</label>
+          <input id="port" type="number" value="9999" />
+        </div>
+        <div class="form-row">
+          <label>Threads</label>
+          <input id="threads" type="number" value="8" />
+        </div>
+        <div class="form-row">
+          <label>Seconds</label>
+          <input id="seconds" type="number" value="10" />
+        </div>
+        <div class="form-row">
+          <label>Payload (bytes)</label>
+          <input id="payload" type="number" value="1024" />
+        </div>
+        <div class="form-row">
+          <label>Delay (ms)</label>
+          <input id="delay" type="number" value="0" />
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="startBtn">Start</button>
+        <button id="stopBtn" class="secondary">Stop</button>
+        <button id="statusBtn" class="secondary">Status</button>
+      </div>
+
+      <div class="small" style="margin-top:10px">Max threads capped server-side. Target must be localhost.</div>
+    </div>
+
+    <div class="log-panel">
+      <div class="log-header">
+        <div class="title">Logs</div>
+        <div class="meta">Live output from the local process</div>
+      </div>
+      <pre id="log">idle...</pre>
+    </div>
+  </div>
+
 <script>
-const logEl = document.getElementById("log");
-const form = document.getElementById("configForm");
-const stopBtn = document.getElementById("stopBtn");
+const logEl = document.getElementById('log');
+const startBtn = document.getElementById('startBtn');
+const stopBtn = document.getElementById('stopBtn');
+const statusBtn = document.getElementById('statusBtn');
 
-function appendLog(msg) { logEl.textContent += msg + "\n"; logEl.scrollTop = logEl.scrollHeight; }
+function appendLog(s){
+  logEl.textContent = s + "\n" + logEl.textContent;
+  if (logEl.textContent.length > 20000) logEl.textContent = logEl.textContent.slice(0,20000);
+}
 
-form.addEventListener("submit", e => {
-  e.preventDefault();
-  const data = Object.fromEntries(new FormData(form));
-  fetch("/start", { method:"POST", headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) })
-    .then(r=>r.json()).then(d=>appendLog("[start] "+JSON.stringify(d)));
-});
+const es = new EventSource('/events');
+es.onmessage = ev => appendLog(ev.data.replace(/\\n/g, '\n'));
+es.onerror = () => appendLog('[SSE] disconnected');
 
-stopBtn.addEventListener("click", () => {
-  fetch("/stop",{method:"POST"}).then(r=>r.json()).then(d=>appendLog("[stop] "+JSON.stringify(d)));
-});
+startBtn.onclick = async () => {
+  const payload = {
+    host: document.getElementById('host').value.trim(),
+    port: Number(document.getElementById('port').value),
+    threads: Number(document.getElementById('threads').value),
+    seconds: Number(document.getElementById('seconds').value),
+    payload: Number(document.getElementById('payload').value),
+    delay: Number(document.getElementById('delay').value)
+  };
+  const r = await fetch('/start', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+  const j = await r.json();
+  appendLog('[start] ' + JSON.stringify(j));
+};
 
-// SSE
-const evtSource = new EventSource("/events");
-evtSource.onmessage = e => appendLog(e.data.replace(/\\n/g,"\n"));
+stopBtn.onclick = async () => {
+  const r = await fetch('/stop', { method: 'POST' });
+  const j = await r.json();
+  appendLog('[stop] ' + JSON.stringify(j));
+};
+
+statusBtn.onclick = async () => {
+  const r = await fetch('/status');
+  const j = await r.json();
+  appendLog('[status] ' + JSON.stringify(j));
+};
 </script>
 </body>
 </html>
