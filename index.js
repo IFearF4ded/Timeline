@@ -1,5 +1,5 @@
 // server.js
-import express from "express";
+const express = require("express");
 import { spawn } from "child_process";
 import path from "path";
 import { fileURLToPath } from "url";
