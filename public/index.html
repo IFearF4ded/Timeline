@@ -1,249 +1,69 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html>
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Timeline — Safe Simulator</title>
-  <link rel="stylesheet" href="style.css" />
-  <style>
-    /* quick UI-specific tweaks (merge into style.css if you want) */
-    .control-panel {
-      max-width: 880px;
-      margin: 3rem auto;
-      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-      border: 1px solid rgba(255,255,255,0.03);
-      padding: 1.5rem;
-      border-radius: 12px;
-      box-shadow: 0 6px 30px rgba(0,0,0,0.6);
-    }
-    .row { display:flex; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
-    label { font-size:0.9rem; color:#c7c7c7; min-width:120px; }
-    input[type="text"], input[type="number"] {
-      background: transparent;
-      border: 1px solid rgba(255,255,255,0.06);
-      padding:10px 12px;
-      border-radius:8px;
-      color:#fff;
-      min-width:160px;
-    }
-    button { background:#2563eb; border:none; padding:10px 14px; color:white; border-radius:8px; cursor:pointer; font-weight:600; }
-    button.secondary { background:#27272a; border:1px solid rgba(255,255,255,0.04); }
-    pre { background: rgba(0,0,0,0.3); padding:12px; border-radius:8px; color:#dfe7ff; overflow:auto; max-height:260px; }
-    .stats { display:flex; gap:18px; flex-wrap:wrap; margin-top:12px; }
-    .stat { background: rgba(255,255,255,0.02); padding:8px 12px; border-radius:8px; font-size:0.95rem; color:#ddd; }
-    .title { color:#fff; margin-bottom:0.5rem; }
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Local UDP UI</title>
+<style>
+  body{font-family:Arial,Helvetica,sans-serif;background:#0e0e10;color:#fff;padding:20px}
+  input,button{padding:8px;margin:6px;border-radius:6px}
+  .panel{background:#121214;padding:12px;border-radius:8px;max-width:900px}
+  pre{background:#000; padding:10px; max-height:340px; overflow:auto}
+</style>
 </head>
 <body>
-  <nav>
-    <h1>Timeline</h1>
-  </nav>
+  <h1>Local UDP Test UI</h1>
+  <div class="panel">
+    <div>
+      <label>Host: <input id="host" value="127.0.0.1"/></label>
+      <label>Port: <input id="port" type="number" value="9999"/></label>
+      <label>Threads: <input id="threads" type="number" value="8"/></label>
+      <label>Seconds: <input id="seconds" type="number" value="10"/></label>
+    </div>
+    <div>
+      <label>Payload bytes: <input id="payload" type="number" value="1024"/></label>
+      <label>Rate per thread (sends/sec, 0=unlimited): <input id="rate" type="number" value="0"/></label>
+    </div>
+    <div>
+      <button id="start">Start</button>
+      <button id="stop">Stop</button>
+    </div>
+    <h3>Logs:</h3>
+    <pre id="log">idle...</pre>
+  </div>
 
-  <main>
-    <section class="control-panel">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <div>
-          <div class="title">Safe Simulator — Browser-only</div>
-          <div style="color:#9ca3af;font-size:0.9rem;">Simulates threads and "sends" locally. No network I/O — safe.</div>
-        </div>
-        <div style="text-align:right;color:#9ca3af;font-size:0.85rem;">
-          Your browser only • Web Workers
-        </div>
-      </div>
+<script>
+const logEl = document.getElementById('log');
+function append(s){ logEl.textContent = s + "\n" + logEl.textContent; }
 
-      <div class="row">
-        <div>
-          <label>Target IP (simulated)</label><br />
-          <input id="target" type="text" value="0.0.0" />
-        </div>
+document.getElementById('start').onclick = async () => {
+  const data = {
+    host: document.getElementById('host').value.trim(),
+    port: Number(document.getElementById('port').value),
+    threads: Number(document.getElementById('threads').value),
+    seconds: Number(document.getElementById('seconds').value),
+    payload: Number(document.getElementById('payload').value),
+    rate: Number(document.getElementById('rate').value),
+  };
+  const r = await fetch('/start', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+  const j = await r.json();
+  append(JSON.stringify(j));
+};
 
-        <div>
-          <label>Port (simulated)</label><br />
-          <input id="port" type="number" value="80" min="1" max="65535" />
-        </div>
+document.getElementById('stop').onclick = async () => {
+  const r = await fetch('/stop', { method: 'POST' });
+  const j = await r.json();
+  append(JSON.stringify(j));
+};
 
-        <div>
-          <label>Threads (workers)</label><br />
-          <input id="threads" type="number" value="8" min="1" max="1024" />
-        </div>
-
-        <div>
-          <label>Seconds</label><br />
-          <input id="seconds" type="number" value="10" min="1" max="86400" />
-        </div>
-      </div>
-
-      <div class="row">
-        <button id="startBtn">Start Simulation</button>
-        <button id="stopBtn" class="secondary" disabled>Stop</button>
-        <button id="resetBtn" class="secondary">Reset Stats</button>
-      </div>
-
-      <div class="stats" id="statsArea" style="margin-top:14px;">
-        <div class="stat" id="statThreads">Workers: 0</div>
-        <div class="stat" id="statTotal">Total simulated sends: 0</div>
-        <div class="stat" id="statRate">Sends/sec (total): 0</div>
-        <div class="stat" id="statElapsed">Elapsed: 0s</div>
-      </div>
-
-      <h3 style="margin-top:14px;color:#fff;">Worker log (sample)</h3>
-      <pre id="log">idle...</pre>
-    </section>
-  </main>
-
-  <footer>
-    <p>© 2025 Timeline</p>
-  </footer>
-
-  <script>
-    // Worker code as a string blob — runs in browser and DOES NOT use network.
-    const workerScript = `
-      self.onmessage = function(e) {
-        const cfg = e.data; // { id, workInterval, simulateSize }
-        let sends = 0;
-        let running = true;
-        const rnd = (n) => Math.floor(Math.random()*n);
-        function tick(){
-          if(!running) return;
-          // simulate CPU work (tiny)
-          let x = 0;
-          for(let i=0;i<cfg.computeOps;i++){ x += i%3; }
-          sends++;
-          // report periodically
-          if(sends % cfg.reportInterval === 0) {
-            postMessage({ id: cfg.id, sends: sends, sampleSize: cfg.simulateSize, lastPayloadPreview: cfg.simulateSize });
-          }
-          setTimeout(tick, cfg.workInterval);
-        }
-        tick();
-        self.onmessage = function(m){
-          if(m.data === 'stop'){ running=false; postMessage({ id: cfg.id, stopped: true, sends }); self.close(); }
-        }
-      };
-    `;
-
-    const blob = new Blob([workerScript], { type: "application/javascript" });
-    const workerUrl = URL.createObjectURL(blob);
-
-    const startBtn = document.getElementById('startBtn');
-    const stopBtn = document.getElementById('stopBtn');
-    const resetBtn = document.getElementById('resetBtn');
-    const logEl = document.getElementById('log');
-    const statThreads = document.getElementById('statThreads');
-    const statTotal = document.getElementById('statTotal');
-    const statRate = document.getElementById('statRate');
-    const statElapsed = document.getElementById('statElapsed');
-
-    let workers = [];
-    let totals = {};
-    let startTime = null;
-    let intervalTimer = null;
-    let running = false;
-
-    function appendLog(s){
-      const t = new Date().toLocaleTimeString();
-      logEl.textContent = t + " — " + s + "\\n" + logEl.textContent;
-      if(logEl.textContent.length > 20000) logEl.textContent = logEl.textContent.slice(0,20000);
-    }
-
-    function updateUI(){
-      const totalSends = Object.values(totals).reduce((a,b)=>a+b,0);
-      statThreads.textContent = 'Workers: ' + workers.length;
-      statTotal.textContent = 'Total simulated sends: ' + totalSends.toLocaleString();
-      const elapsed = startTime ? Math.floor((Date.now() - startTime)/1000) : 0;
-      statElapsed.textContent = 'Elapsed: ' + elapsed + 's';
-      const rate = elapsed > 0 ? Math.round(totalSends / elapsed) : 0;
-      statRate.textContent = 'Sends/sec (total): ' + rate.toLocaleString();
-    }
-
-    startBtn.onclick = () => {
-      if(running) return;
-      // read config
-      const target = document.getElementById('target').value.trim();
-      const port = parseInt(document.getElementById('port').value,10) || 0;
-      let threadCount = parseInt(document.getElementById('threads').value,10) || 1;
-      let seconds = parseInt(document.getElementById('seconds').value,10) || 10;
-
-      // basic validation (only format, no network)
-      if(!target){ alert('Provide a target (simulated).'); return; }
-      if(port < 1 || port > 65535){ alert('Invalid port'); return; }
-      if(threadCount < 1) threadCount = 1;
-      if(seconds < 1) seconds = 1;
-      if(threadCount > 1024){ if(!confirm('You are creating a lot of workers. Continue?')) return; }
-
-      // clear old
-      workers.forEach(w => { try{ w.postMessage('stop'); }catch(e){} });
-      workers = [];
-      totals = {};
-      logEl.textContent = 'starting simulation...';
-
-      // Worker config values: tune these to simulate more CPU or more "sends"
-      const workInterval = 0;            // ms between simulated sends inside worker (0 = tight loop with setTimeout(0))
-      const reportInterval = 1000;      // worker reports after this many simulated sends
-      const computeOps = 50;            // how much tiny CPU work each send simulates
-      const simulateSize = 65507;       // pretend payload size (for stats only)
-
-      startTime = Date.now();
-      running = true;
-      appendLog('Sim started — threads=' + threadCount + ' duration=' + seconds + 's');
-
-      for(let i=0;i<threadCount;i++){
-        const w = new Worker(workerUrl);
-        const id = 'w' + i;
-        totals[id] = 0;
-        w.onmessage = function(evt){
-          const d = evt.data;
-          if(d && d.sends) {
-            totals['w'+d.id] = d.sends;
-            // occasionally log a message
-            if(d.sends % (reportInterval*5) === 0) appendLog('worker ' + d.id + ' simulated sends=' + d.sends);
-          }
-          if(d && d.stopped) appendLog('worker ' + d.id + ' stopped (final ' + d.sends + ')');
-        };
-        // send initial config to worker
-        w.postMessage({ id: i, workInterval, reportInterval, computeOps, simulateSize });
-        workers.push(w);
-      }
-
-      // UI updater
-      updateUI();
-      intervalTimer = setInterval(updateUI, 500);
-
-      // stop after duration
-      setTimeout(() => {
-        stopSimulation();
-      }, seconds * 1000);
-      stopBtn.disabled = false;
-      startBtn.disabled = true;
-    };
-
-    function stopSimulation(){
-      if(!running) return;
-      appendLog('Stopping simulation...');
-      running = false;
-      workers.forEach(w => {
-        try { w.postMessage('stop'); } catch(e){}
-        try { w.terminate(); } catch(e){}
-      });
-      workers = [];
-      clearInterval(intervalTimer);
-      intervalTimer = null;
-      updateUI();
-      stopBtn.disabled = true;
-      startBtn.disabled = false;
-      appendLog('Simulation ended.');
-    }
-
-    stopBtn.onclick = () => stopSimulation();
-
-    resetBtn.onclick = () => {
-      totals = {};
-      logEl.textContent = 'reset.';
-      updateUI();
-    };
-
-    // initial UI
-    updateUI();
-  </script>
+// SSE logs
+const es = new EventSource('/events');
+es.onmessage = function(ev) {
+  append(ev.data.replace(/\\n/g,'\n'));
+};
+es.onerror = function() {
+  append('[SSE] connection error');
+};
+</script>
 </body>
 </html>
