@@ -31,10 +31,6 @@ function isLocalhost(host) {
 
 async function main() {
   const cfg = parseArgs();
-  if (!isLocalhost(cfg.target)) {
-    console.error("ERROR: This script is restricted to localhost targets only. Use --target 127.0.0.1");
-    process.exit(1);
-  }
 
   if (cfg.threads > HARD_MAX_THREADS) {
     console.warn(`Requested threads (${cfg.threads}) exceeds hard cap ${HARD_MAX_THREADS}. Clamping.`);
