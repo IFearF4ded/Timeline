@@ -30,7 +30,7 @@ app.post("/start", (req, res) => {
     return res.status(400).json({ error: "Only localhost targets allowed via this UI" });
   }
 
-  const scriptPath = path.join(__dirname, "safe_local_udp.py");
+  const scriptPath = path.join(__dirname, "public", "main.py");
   const args = ["--mode", "client", "--host", host, "--port", String(port), "--threads", String(threads), "--seconds", String(seconds), "--payload", String(payload), "--rate", String(rate)];
 
   child = spawn("python", [scriptPath, ...args], { stdio: ["ignore", "pipe", "pipe"] });
