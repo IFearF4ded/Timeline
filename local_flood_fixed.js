@@ -20,18 +20,8 @@ function parseArgs() {
   };
 }
 
-function isLocalhost(host) {
-  return host === "127.0.0.1" || host === "localhost" || host === "::1";
-}
-
 async function main() {
   const cfg = parseArgs();
-
-  // Safety: enforce localhost-only
-  if (!isLocalhost(cfg.target)) {
-    console.error("[ERROR] target must be localhost (127.0.0.1). Aborting.");
-    process.exit(1);
-  }
 
   const HARD_MAX_THREADS = 512;
   const SUGGESTED_MAX = Math.max(4, (os.cpus().length || 4) * 8);
