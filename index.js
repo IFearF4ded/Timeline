@@ -36,12 +36,6 @@ app.post("/start", (req, res) => {
   let payload = sanitizeNumber(body.payload, 1024);
   let delay = sanitizeNumber(body.delay, 0);
 
-  if (port < 1 || port > 65535) return res.status(400).json({ ok: false, error: "Invalid port" });
-  if (threads < 1) threads = 1;
-  if (threads > 1024) return res.status(400).json({ ok: false, error: "Threads too large (max 1024)" });
-  if (seconds < 1) seconds = 1;
-  if (payload < 1 || payload > 65507) return res.status(400).json({ ok: false, error: "Payload out of range" });
-
   const scriptPath = path.join(__dirname, "local_flood_fixed.js");
   const args = [
     "--target", host,
