@@ -23,16 +23,6 @@ function parseArgs() {
 async function main() {
   const cfg = parseArgs();
 
-  const HARD_MAX_THREADS = 512;
-  const SUGGESTED_MAX = Math.max(4, (os.cpus().length || 4) * 8);
-
-  if (cfg.threads > HARD_MAX_THREADS) {
-    console.warn(`[WARN] Requested threads (${cfg.threads}) exceeds hard cap ${HARD_MAX_THREADS}. Clamping.`);
-    cfg.threads = HARD_MAX_THREADS;
-  } else if (cfg.threads > SUGGESTED_MAX) {
-    console.warn(`[WARN] Threads (${cfg.threads}) > suggested (${SUGGESTED_MAX}).`);
-  }
-
   console.log(`Starting UDP sender -> ${cfg.target}:${cfg.port}`);
   console.log(`threads=${cfg.threads} seconds=${cfg.seconds} payload=${cfg.payloadSize}B delay=${cfg.delayMs}ms`);
 
