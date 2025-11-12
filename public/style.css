@@ -1,0 +1,81 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Inter', sans-serif;
+}
+
+body {
+  background-color: #0e0e10;
+  color: #e5e5e5;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+nav {
+  background: #18181b;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #27272a;
+}
+
+nav h1 {
+  font-weight: 600;
+  color: #fff;
+}
+
+nav .links a {
+  color: #aaa;
+  text-decoration: none;
+  margin-left: 1.5rem;
+  transition: color 0.2s ease;
+}
+
+nav .links a:hover {
+  color: #fff;
+}
+
+.hero {
+  text-align: center;
+  margin-top: 10vh;
+}
+
+.hero h2 {
+  font-size: 2.5rem;
+  color: #fff;
+}
+
+.hero p {
+  margin-top: 0.5rem;
+  color: #9ca3af;
+}
+
+.hero button {
+  margin-top: 2rem;
+  padding: 0.8rem 2rem;
+  background: #2563eb;
+  border: none;
+  color: white;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.hero button:hover {
+  background: #1d4ed8;
+}
+
+footer {
+  margin-top: auto;
+  text-align: center;
+  padding: 1.5rem;
+  border-top: 1px solid #27272a;
+  color: #777;
+  font-size: 0.9rem;
+}
